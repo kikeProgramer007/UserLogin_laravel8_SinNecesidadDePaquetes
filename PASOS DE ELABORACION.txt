@@ -1,0 +1,275 @@
+
+FUENTE YOUTUBE: https://youtu.be/DqWXEiyp22E
+
+ROLES Y PERMISOS EN LARAVEL 8
+
+
+> composer create-project laravel/laravel:8.* usuariospermisoslaravel8		<-CREAR APP LARAVEL 8.83.7
+> php artisan --version								<-VER VESION DE LARAVEL
+
+> php artisan make:controller RegisterController				<-CREAR CONTROLADOR Register
+> php artisan make:controller SessionController					<-CREAR CONTROLADOR Session
+
+------------------------------------------------------------------------------------------------------------
+ INCLUIR CONTROLADORES EN EL ARCHIVO DE RUTAS ES DECIR "wep.php"
+------------------------------------------------------------------------------------------------------------
+<?php
+
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\RegisterController;
+use App\Http\Controllers\SessionController;
+
+Route::get('/', function () {
+    return view('home');
+})->middleware('auth');
+
+Route::get('/register',[RegisterController::class,'create'])->middleware('guest')->name('register.index');
+Route::post('/register',[RegisterController::class,'store'])->name('register.store');
+Route::get('/login',[SessionController::class,'create'])->middleware('guest')->name('login.index');
+Route::post('/login',[SessionController::class,'store'])->name('login.store');
+Route::get('/logout',[SessionController::class,'destroy'])->middleware('auth')->name('login.destroy');
+
+------------------------------------------------------------------------------------------------------------
+ NOS DIRIGIMOS A "htdocs\usersroleslaravel8\app\Http\Middleware" Y ABRIMOS EL ARCHIVO "Authenticate.php"
+------------------------------------------------------------------------------------------------------------
+//MODIFICAMOS ESTE FUNCION 
+
+    protected function redirectTo($request)
+    {
+        if (! $request->expectsJson()) {
+            return route('login.index');  //CUANDO INICIE SESION QUE LO DIRIJA
+        }
+    }
+
+------------------------------------------------------------------------------------------------------------
+ NOS DIRIGIMOS A "htdocs\usersroleslaravel8\app\Http\Middleware" Y ABRIMOS EL ARCHIVO "RedirectIfAuthenticated.php"
+------------------------------------------------------------------------------------------------------------
+...
+ public function handle(Request $request, Closure $next, ...$guards)
+    {
+        $guards = empty($guards) ? [null] : $guards;
+
+        foreach ($guards as $guard) {
+            if (Auth::guard($guard)->check()) {
+                return redirect()->to('/');  //MODIFICAMOS EL DIRECCIONAMIENTO
+            }
+        }
+
+        return $next($request);
+    }
+...
+
+------------------------------------------------------------------------------------------------------------
+ EN LA CARPETA DE VIEWS CREAMOS UNA CARPETA 'LAYOUTS' Y DENTRO CREAMOS UN ARCHIVO "app.blade.php"
+------------------------------------------------------------------------------------------------------------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>@yield('title') - laravel8</title>
+    {{-- STYLOS TAILWINDCSS --}}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.0.1/tailwind.min.css">
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <nav class="flex py-5 bg-indigo-500 text-white">
+
+        <div class="w-1/2 px-12 mr-auto">
+            <p class="text-2xl font-bold">My aplications</p>
+        </div>
+
+        <ul class="w-1/2 px-16 ml-auto flex justify-end pt-1">
+            @if (auth()->check())   {{-- ha iniciado session --}}
+              <li class="mx-8">
+                <p class="text-xl">Welcome <b>{{auth()->user()->name}}</b></p>
+              </li>
+              <li>
+                <a href="{{route('login.destroy')}}"class="font-bold py-2 px-4 rounded-md bg-red-500 hover:bg-red-600">Log out</a>
+              </li>
+            @else {{-- NO ha iniciado session --}}
+              <li class="mx-4">
+                <a href="{{route('login.index')}}" class="font-semibold hover:bg-indigo-700 py-3 px-4 rounded-md">Log In</a>
+              </li>
+              <li>
+                <a href="{{route('register.index')}}"class="font-semibold border-2 border-white py-2 px-4 rounded-md hover:bg-white hover:text-indigo-700">Register</a>
+              </li>
+            @endif
+        </ul>
+
+    </nav>
+
+    @yield('content')
+
+</body>
+</html>
+
+------------------------------------------------------------------------------------------------------------
+ EN LA CARPETA DE VIEWS CREAMOS CREAMOS UN ARCHIVO "home.blade.php"
+------------------------------------------------------------------------------------------------------------
+@extends('layouts.app')
+
+@section('title','Home')
+
+@section('content')
+
+    <h1 class="text-5xl text-center pt-24">Welcome to my application</h1>
+
+@endsection
+
+------------------------------------------------------------------------------------------------------------
+ EN LA CARPETA DE VIEWS CREAMOS UNA CARPETA 'AUTH' Y DENTRO CREAMOS UN ARCHIVO "login.blade.php"
+------------------------------------------------------------------------------------------------------------
+@extends('layouts.app')
+
+@section('title','Login')
+
+@section('content')
+<div class="block mx-auto my-12 p-8 bg-white w-1/3 border border-gray-200 rounded-lg shadow-lg">
+    
+    <h1 class="text-3xl text-center font-bold">Login</h1>
+
+    <form class="mt-4" method="POST" action="">
+        @csrf
+        <input type="email" id="email"  name="email"placeholder="Email" class="border border-gray-200 rounded-md bg-gray-200 w-full text-lg placeholder-gray-900 p-2 my-2 focus:bg-white" >
+        <input type="password" id="password"  name="password"placeholder="Password" class="border border-gray-200 rounded-md bg-gray-200 w-full text-lg placeholder-gray-900 p-2 my-2 focus:bg-white" >
+        
+        @error('message')
+            <p class="border border-red-500 rounded-md bg-red-100 w-full text-red-600 p-2 my-2"> *Error</p>
+        @enderror
+        
+        <button type="submit" class="rounded-md bg-indigo-500 w-full text-lg text-white font-semibold p-2 my-3 hover:bg-indigo-600">Send</button>
+    
+    </form>
+
+</div>
+@endsection
+
+------------------------------------------------------------------------------------------------------------
+ EN LA CARPETA DE VIEWS CREAMOS UNA CARPETA 'AUTH' Y DENTRO CREAMOS UN ARCHIVO "register.blade.php"
+------------------------------------------------------------------------------------------------------------
+@extends('layouts.app')
+
+@section('title','Register')
+
+@section('content')
+
+    <div class="block mx-auto my-12 p-8 bg-white w-1/3 border border-gray-200 rounded-lg shadow-lg">
+    
+        <h1 class="text-3xl text-center font-bold">Register</h1>
+
+            <form class="mt-4" method="POST" action="">
+            @csrf
+
+            <input type="text" id="name"  name="name"placeholder="Name" class="border border-gray-200 rounded-md bg-gray-200 w-full text-lg placeholder-gray-900 p-2 my-2 focus:bg-white" >
+            @error('name')
+              <p class="border border-red-500 rounded-md bg-red-100 w-full text-red-600 p-2 my-2"> * {{$message}}</p>
+            @enderror
+
+            <input type="email" id="email"  name="email"placeholder="Email" class="border border-gray-200 rounded-md bg-gray-200 w-full text-lg placeholder-gray-900 p-2 my-2 focus:bg-white" >
+            @error('email')
+              <p class="border border-red-500 rounded-md bg-red-100 w-full text-red-600 p-2 my-2"> * {{$message}}</p>
+             @enderror
+
+            <input type="password" id="password"  name="password"placeholder="Password" class="border border-gray-200 rounded-md bg-gray-200 w-full text-lg placeholder-gray-900 p-2 my-2 focus:bg-white" >
+            @error('password')
+              <p class="border border-red-500 rounded-md bg-red-100 w-full text-red-600 p-2 my-2"> * {{$message}}</p>
+            @enderror
+
+            <input type="password" id="password_confirmation"  name="password_confirmation"placeholder="Repeat Password" class="border border-gray-200 rounded-md bg-gray-200 w-full text-lg placeholder-gray-900 p-2 my-2 focus:bg-white" >
+
+            <button type="submit" class="rounded-md bg-indigo-500 w-full text-lg text-white font-semibold p-2 my-3 hover:bg-indigo-600">Send</button>
+        
+        </form>
+    
+    </div>
+@endsection
+
+------------------------------------------------------------------------------------------------------------
+ PROGRAMAMOS EN EL CONTROLADOR 'SessionController.php' LAS SGTES FUNCIONES
+------------------------------------------------------------------------------------------------------------
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use App\Models\User;            //OCUPAMOS EL MODEL USER
+
+class SessionController extends Controller
+{
+    public function create(){
+        return view('auth.login');
+    }
+
+    public function store(){
+        if(auth()->attempt(request(['email','password'])) == false){
+            return back()->withErrors([
+                'message' => 'The email or password is in incorrect, please try again'
+            ]);
+        }else{
+        }
+        return redirect()->to('/');
+    }
+
+    public function destroy(){
+        auth()->logout();
+        return redirect()->to('/');
+    }
+}
+------------------------------------------------------------------------------------------------------------
+ PROGRAMAMOS EN EL CONTROLADOR 'RegisterController.php' LAS SGTES FUNCIONES
+------------------------------------------------------------------------------------------------------------
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use App\Models\User;
+class RegisterController extends Controller
+{
+    public function create(){
+        return view('auth.register');
+    }
+
+    public function store(){
+
+        $this->validate(request(),[
+            'name' => 'required',
+            'email' => 'required|email',
+            'password' => 'required|confirmed',
+        ]);
+        $user = User::create(request(['name','email','password'])); //CREAMOS UN USUARIO
+        auth()->login($user);                                       //
+        return redirect()->to('/');                                 //REDIRECCIONAR
+    }
+}
+
+
+------------------------------------------------------------------------------------------------------------
+ MODIFICAMOS EL MODELO "User.php" AUMENTAMOS UNA FUNCION PARA ENCRIPTAR CONTRASEÑA:
+------------------------------------------------------------------------------------------------------------
+
+class User extends Authenticatable
+{
+    use HasApiTokens, HasFactory, Notifiable;
+    ...
+    ...
+    ...
+   //FUNCION ENCRIPTAR CONTRASEÑA
+    public function setPasswordAttribute($password){
+        $this->attributes['password'] = bcrypt($password);
+    }
+}
+
+
+------------------------------------------------------------------------------------------------------------
+ CREAMOS LA BASE DE DATOS EN PHPMYADMIN CON EL NOMBRE "login" Y LUEGO CONFIGURAMOS EL .ENV y LUEGO:
+------------------------------------------------------------------------------------------------------------
+
+> php artisan migrate
+
+
+-------------------------- HERRAMIENTAS DE LIMPIEZAS Y REGISTRO (NO IMPORTANTE EN EL PROCESS)----------------------------
+> php artisan migrate
+> php artisan db:seed				-->dar los registros a roles
